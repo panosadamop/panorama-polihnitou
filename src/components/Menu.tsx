@@ -1,99 +1,106 @@
+import React, { useEffect, useState } from "react";
 import {
   IonContent,
-  IonIcon,
   IonItem,
-  IonLabel,
   IonList,
   IonListHeader,
   IonMenu,
-  IonMenuToggle,
-  IonNote,
-} from '@ionic/react';
-
-import { useLocation } from 'react-router-dom';
-import { archiveOutline, archiveSharp, bookmarkOutline, heartOutline, heartSharp, mailOutline, mailSharp, paperPlaneOutline, paperPlaneSharp, trashOutline, trashSharp, warningOutline, warningSharp } from 'ionicons/icons';
-import './Menu.css';
-
-interface AppPage {
-  url: string;
-  iosIcon: string;
-  mdIcon: string;
-  title: string;
-}
-
-const appPages: AppPage[] = [
-  {
-    title: 'Inbox',
-    url: '/folder/Inbox',
-    iosIcon: mailOutline,
-    mdIcon: mailSharp
-  },
-  {
-    title: 'Outbox',
-    url: '/folder/Outbox',
-    iosIcon: paperPlaneOutline,
-    mdIcon: paperPlaneSharp
-  },
-  {
-    title: 'Favorites',
-    url: '/folder/Favorites',
-    iosIcon: heartOutline,
-    mdIcon: heartSharp
-  },
-  {
-    title: 'Archived',
-    url: '/folder/Archived',
-    iosIcon: archiveOutline,
-    mdIcon: archiveSharp
-  },
-  {
-    title: 'Trash',
-    url: '/folder/Trash',
-    iosIcon: trashOutline,
-    mdIcon: trashSharp
-  },
-  {
-    title: 'Spam',
-    url: '/folder/Spam',
-    iosIcon: warningOutline,
-    mdIcon: warningSharp
-  }
-];
-
-const labels = ['Family', 'Friends', 'Notes', 'Work', 'Travel', 'Reminders'];
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonSpinner,
+  IonImg,
+} from "@ionic/react";
+import { getCategories } from "../api/axiosConfig";
 
 const Menu: React.FC = () => {
-  const location = useLocation();
+  const [categories, setCategories] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true); // Infinite scroll tracking
+  const [isFetching, setIsFetching] = useState(false); // Prevent duplicate API calls
+
+  const fetchCategories = async (page: number) => {
+    // Guard against duplicate calls
+    if (isFetching || !hasMore) return;
+
+    setIsFetching(true); // Prevent multiple simultaneous calls
+    try {
+      const response = await getCategories({
+        params: { page, per_page: 10 }, // Paginated categories
+      });
+
+      if (response.data.length > 0) {
+        // Prevent duplicates
+        const newCategories = response.data.filter(
+            (category: any) => !categories.some((cat) => cat.id === category.id)
+        );
+        setCategories((prev) => [...prev, ...newCategories]);
+      } else {
+        setHasMore(false); // Stop infinite scroll if no more categories
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setHasMore(false); // Stop fetching on error
+    } finally {
+      setIsFetching(false); // Reset fetching state
+    }
+  };
+
+  useEffect(() => {
+    // Fetch initial categories once
+    fetchCategories(1);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  const loadMoreCategories = () => {
+    if (!hasMore || isFetching) return; // Guard against unnecessary calls
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    fetchCategories(nextPage);
+  };
 
   return (
-    <IonMenu contentId="main" type="overlay">
-      <IonContent>
-        <IonList id="inbox-list">
-          <IonListHeader>Inbox</IonListHeader>
-          <IonNote>hi@ionicframework.com</IonNote>
-          {appPages.map((appPage, index) => {
-            return (
-              <IonMenuToggle key={index} autoHide={false}>
-                <IonItem className={location.pathname === appPage.url ? 'selected' : ''} routerLink={appPage.url} routerDirection="none" lines="none" detail={false}>
-                  <IonIcon aria-hidden="true" slot="start" ios={appPage.iosIcon} md={appPage.mdIcon} />
-                  <IonLabel>{appPage.title}</IonLabel>
-                </IonItem>
-              </IonMenuToggle>
-            );
-          })}
-        </IonList>
+      <IonMenu contentId="main" type="overlay">
+        <IonContent>
+          {/* Top Image */}
+          <IonImg
+              src="https://panoramapolihnitou.gr/wp-content/uploads/2024/10/panorama-logo.png"
+              alt="Menu Header"
+              style={{ width: "70%", objectFit: "cover" }}
+          />
 
-        <IonList id="labels-list">
-          <IonListHeader>Labels</IonListHeader>
-          {labels.map((label, index) => (
-            <IonItem lines="none" key={index}>
-              <IonIcon aria-hidden="true" slot="start" icon={bookmarkOutline} />
-              <IonLabel>{label}</IonLabel>
-            </IonItem>
-          ))}
-        </IonList>
-      </IonContent>
-    </IonMenu>
+          <IonList>
+            {/* Static Menu Items */}
+            <IonItem routerLink="/post-list">Αρθρογραφία</IonItem>
+            <IonItem routerLink="/pages">Site Pages</IonItem>
+            <IonItem routerLink="/contact">Επικοινωνία</IonItem>
+
+            {/* Dynamic Categories */}
+            <IonListHeader style={{ fontWeight: "bold", fontSize: "18px" }}>Menu</IonListHeader>
+            {categories.map((category) => (
+                <IonItem
+                    key={category.id}
+                    routerLink={`/category/${category.id}`}
+                    detail={false}
+                >
+                  {category.name}
+                </IonItem>
+            ))}
+          </IonList>
+
+          {/* Infinite Scroll */}
+          <IonInfiniteScroll
+              threshold="100px"
+              onIonInfinite={(e: CustomEvent<void>) => {
+                loadMoreCategories();
+                (e.target as HTMLIonInfiniteScrollElement).complete();
+              }}
+              disabled={!hasMore}
+          >
+            <IonInfiniteScrollContent loadingText="Loading more categories...">
+              {isFetching && <IonSpinner />}
+            </IonInfiniteScrollContent>
+          </IonInfiniteScroll>
+        </IonContent>
+      </IonMenu>
   );
 };
 

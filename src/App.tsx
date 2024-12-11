@@ -2,7 +2,6 @@ import { IonApp, IonRouterOutlet, IonSplitPane, setupIonicReact } from '@ionic/r
 import { IonReactRouter } from '@ionic/react-router';
 import { Redirect, Route } from 'react-router-dom';
 import Menu from './components/Menu';
-import Page from './pages/Page';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -29,10 +28,15 @@ import '@ionic/react/css/display.css';
 
 /* import '@ionic/react/css/palettes/dark.always.css'; */
 /* import '@ionic/react/css/palettes/dark.class.css'; */
-import '@ionic/react/css/palettes/dark.system.css';
+// import '@ionic/react/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import PostList from "./pages/PostList";
+import PostDetails from "./pages/PostDetails";
+import ArticlesByCategory from "./pages/ArticlesByCategory";
+import SitePages from "./pages/SitePages";
+import Contact from "./pages/Contact";
 
 setupIonicReact();
 
@@ -43,12 +47,12 @@ const App: React.FC = () => {
         <IonSplitPane contentId="main">
           <Menu />
           <IonRouterOutlet id="main">
-            <Route path="/" exact={true}>
-              <Redirect to="/folder/Inbox" />
-            </Route>
-            <Route path="/folder/:name" exact={true}>
-              <Page />
-            </Route>
+            <Route path="/" exact component={PostList} />
+            <Route path="/post-list" exact component={PostList} />
+            <Route path="/post-details/:id" component={PostDetails} />
+            <Route path="/category/:id" component={ArticlesByCategory} />
+            <Route path="/pages" component={SitePages} />
+            <Route path="/contact" component={Contact} />
           </IonRouterOutlet>
         </IonSplitPane>
       </IonReactRouter>
